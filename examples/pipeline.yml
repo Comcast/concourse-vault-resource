@@ -1,0 +1,44 @@
+resource_types:
+- name: vault
+  type: docker-image
+  source:
+    repository: registry:5000/shellfu/concourse-vault-resource
+    tag: latest
+    insecure_registries: [ "registry:5000" ]
+
+resources:
+- name: vault-test
+  type: vault
+  source:
+    debug: true
+    format: yaml
+    sanitize: true
+    upcase: false
+    vault_addr: https://vault.example.com:8200 
+    vault_insecure: true
+    vault_token: {{token}}
+    role_name: {{role_name}}
+    vault_paths: 
+      # KV1 Engine Test
+      secret/foo: -1
+      # KV2 Engine Test
+      kv2/data/foo: 2
+      kv2/data/bar: -1 
+
+jobs:
+- name: vault
+  plan:
+  - get: vault-test
+    trigger: true
+  - task: show-result
+    config:
+      inputs: 
+      - name: vault-test
+      platform: linux
+      image_resource:
+        type: docker-image
+        source: {repository: busybox}
+      run:
+        path: /bin/ls
+        args: 
+          - ./vault-test/secrets
